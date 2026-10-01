@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#171614" />
+  <title>Khayaal — A place for your words</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Sans+Gurmukhi:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="Khayaal home">
+      <span class="brand-mark">ख़</span><span>Khayaal</span>
+    </a>
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#explore">Explore</a>
+      <a href="#community">Community</a>
+      <a href="#about">About</a>
+    </nav>
+    <div class="header-actions">
+      <a class="button button-dark button-small" href="#write">Write</a>
+      <a class="profile-dot" href="#dashboard" aria-label="Your profile">A</a>
+      <button class="menu-button" id="menuButton" aria-label="Open menu">☰</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <footer class="footer">
+    <div>
+      <div class="brand footer-brand"><span class="brand-mark">ख़</span><span>Khayaal</span></div>
+      <p>Har khayaal ko alfaaz milne chahiye.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#about">About</a><a href="#community">Community</a><a href="#write">Write</a>
+    </div>
+  </footer>
+
+  <div class="mobile-menu" id="mobileMenu" hidden>
+    <a href="#home">Home</a>
+    <a href="#explore">Explore</a>
+    <a href="#community">Community</a>
+    <a href="#write">Write</a>
+    <a href="#dashboard">Profile</a>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
