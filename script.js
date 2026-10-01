@@ -7,6 +7,30 @@ const writings = [
   {id:6, title:"The Quiet Between Us", category:"Thoughts", mood:"Love", tone:"Thoughtful", author:"Anonymous", excerpt:"Sometimes silence is not distance. Sometimes it is everything we couldn't explain.", image:"https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80", thoughts:23}
 ];
 
+
+const STORAGE_KEY = "khayaal_user_writings";
+const DRAFT_KEY = "khayaal_draft";
+
+function userWritings() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+  catch(e) { return []; }
+}
+function allWritings() {
+  return [...userWritings(), ...writings];
+}
+function saveUserWritings(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[ch]));
+}
+function selectedValue(id) {
+  const el = document.getElementById(id);
+  return el ? el.value : "";
+}
+
 const moods = ["All","Love","Longing","Peace","Heartbreak","Hope","Nostalgia","Life","Solitude"];
 const categories = ["All","Poetry","Free Verse","Open Writing","Stories","Thoughts"];
 
@@ -17,8 +41,8 @@ function card(w) {
     <a href="#read/${w.id}"><div class="card-image" style="background-image:url('${w.image}')"></div></a>
     <div class="card-body">
       <div class="meta">${w.category} · ${w.mood}</div>
-      <h3><a href="#read/${w.id}">${w.title}</a></h3>
-      <p class="excerpt">${w.excerpt}</p>
+      <h3><a href="#read/${w.id}">${esc(w.title)}</a></h3>
+      <p class="excerpt">${esc(w.excerpt)}</p>
       <div class="card-footer"><span class="author">— ${w.author}</span><span>♡ ${w.thoughts} · 💭</span></div>
     </div>
   </article>`;
@@ -58,7 +82,7 @@ function home() {
 
     <section class="section container">
       <div class="section-head"><div><div class="eyebrow">From Khayaal</div><h2>Words worth staying with.</h2></div>${navLink("#explore","Explore all →")}</div>
-      <div class="writing-grid">${writings.slice(0,3).map(card).join("")}</div>
+      <div class="writing-grid">${allWritings().slice(0,3).map(card).join("")}</div>
     </section>
 
     <section class="section" style="background:var(--paper)">
@@ -71,7 +95,7 @@ function home() {
 function explore() {
   let selectedCategory = "All", selectedMood = "All";
   const render = () => {
-    let list = writings.filter(w => (selectedCategory==="All" || w.category===selectedCategory) && (selectedMood==="All" || w.mood===selectedMood));
+    let list = allWritings().filter(w => (selectedCategory==="All" || w.category===selectedCategory) && (selectedMood==="All" || w.mood===selectedMood));
     document.getElementById("explore-results").innerHTML = list.length ? list.map(card).join("") : `<div class="panel"><h3>No writings found.</h3><p>Try another feeling or category.</p></div>`;
     document.querySelectorAll("[data-cat]").forEach(b => b.classList.toggle("active", b.dataset.cat===selectedCategory));
     document.querySelectorAll("[data-mood]").forEach(b => b.classList.toggle("active", b.dataset.mood===selectedMood));
@@ -81,7 +105,7 @@ function explore() {
     document.querySelectorAll("[data-mood]").forEach(b => b.onclick=()=>{selectedMood=b.dataset.mood;render();});
     document.getElementById("searchInput").oninput = e => {
       const q=e.target.value.toLowerCase();
-      document.getElementById("explore-results").innerHTML=writings.filter(w=>Object.values(w).join(" ").toLowerCase().includes(q)).map(card).join("");
+      document.getElementById("explore-results").innerHTML=allWritings().filter(w=>Object.values(w).join(" ").toLowerCase().includes(q)).map(card).join("");
     };
     render();
   });
@@ -97,30 +121,198 @@ function explore() {
 }
 
 function writePage() {
+  setTimeout(() => {
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (draft) {
+      const fields = {
+        writeTitle: draft.title,
+        writeText: draft.text,
+        writeCategory: draft.category,
+        writeMood: draft.mood,
+        writeTone: draft.tone,
+        writeLanguage: draft.language
+      };
+      Object.entries(fields).forEach(([id,val]) => {
+        const el = document.getElementById(id);
+        if (el && val != null) el.value = val;
+      });
+      if (document.getElementById("writeAnonymous")) document.getElementById("writeAnonymous").checked = !!draft.anonymous;
+      if (document.getElementById("writePublic")) document.getElementById("writePublic").checked = !!draft.public;
+      if (document.getElementById("writeThoughts")) document.getElementById("writeThoughts").checked = !!draft.thoughts;
+      if (draft.cover) {
+        const preview = document.getElementById("coverPreview");
+        if (preview) {
+          preview.style.backgroundImage = `url('${draft.cover}')`;
+          preview.classList.add("has-image");
+        }
+      }
+    }
+  });
+
   return `<div class="page">
-    <section class="page-hero container"><div class="eyebrow">Create</div><h1>Put your Khayaal into words.</h1><p>There is no perfect way to begin. Start with one honest sentence.</p></section>
+    <section class="page-hero container">
+      <div class="eyebrow">Create</div>
+      <h1>Put your Khayaal into words.</h1>
+      <p>Write freely. Choose how your words are seen, and let your voice stay yours.</p>
+    </section>
+
     <section class="container" style="padding-bottom:100px">
       <div class="write-layout">
         <div class="panel">
-          <div class="field"><label>Title</label><input id="writeTitle" class="editor-title" placeholder="Give your writing a name..." /></div>
-          <div class="field"><label>Your words</label><textarea id="writeText" class="editor" placeholder="Let your thoughts find their words..."></textarea></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="button button-dark" onclick="publishDraft()">Publish to Khayaal →</button><button class="button button-light" onclick="showToast('Draft saved locally for this prototype.')">Save draft</button></div>
+          <div class="field">
+            <label>Title</label>
+            <input id="writeTitle" class="editor-title" placeholder="Give your writing a name..." maxlength="120" />
+          </div>
+
+          <div class="field">
+            <label>Your words</label>
+            <textarea id="writeText" class="editor" placeholder="Let your thoughts find their words..."></textarea>
+          </div>
+
+          <div class="field">
+            <label>Cover image <span class="muted-label">optional</span></label>
+            <input id="writeCover" type="file" accept="image/*" class="file-input" />
+            <div id="coverPreview" class="cover-preview"><span>Your cover will appear here</span></div>
+          </div>
+
+          <div class="write-actions">
+            <button class="button button-dark" onclick="publishWriting()">Publish to Khayaal →</button>
+            <button class="button button-light" onclick="saveDraft()">Save draft</button>
+            <button class="button button-ghost" onclick="clearWriter()">Clear</button>
+          </div>
+          <p class="editor-note">This version saves your drafts and published writings in this browser. We will connect a real database and accounts next.</p>
         </div>
+
         <aside class="panel">
-          <div class="field"><label>Category</label><select id="writeCategory"><option>Poetry</option><option>Free Verse</option><option>Open Writing</option><option>Story</option><option>Thought</option></select></div>
-          <div class="field"><label>Mood</label><select><option>Love</option><option>Longing</option><option>Peace</option><option>Heartbreak</option><option>Hope</option><option>Nostalgia</option><option>Life</option><option>Solitude</option></select></div>
-          <div class="field"><label>Tone</label><select><option>Soft</option><option>Deep</option><option>Melancholic</option><option>Romantic</option><option>Thoughtful</option><option>Raw</option><option>Hopeful</option></select></div>
-          <div class="toggle-row"><span>Publish anonymously</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
-          <div class="toggle-row"><span>Visible to everyone</span><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
-          <p style="font-size:12px;margin-top:18px">Cover images and real publishing will connect to the backend in the next version.</p>
+          <div class="field">
+            <label>Category</label>
+            <select id="writeCategory">
+              <option>Poetry</option><option>Free Verse</option><option>Open Writing</option><option>Stories</option><option>Thoughts</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Mood</label>
+            <select id="writeMood">
+              <option>Love</option><option>Longing</option><option>Peace</option><option>Heartbreak</option><option>Hope</option><option>Nostalgia</option><option>Life</option><option>Solitude</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tone</label>
+            <select id="writeTone">
+              <option>Soft</option><option>Deep</option><option>Melancholic</option><option>Romantic</option><option>Thoughtful</option><option>Raw</option><option>Hopeful</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Language</label>
+            <select id="writeLanguage">
+              <option>English</option><option>Hindi</option><option>Punjabi</option><option>Hinglish</option><option>Other</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <span><strong>Publish anonymously</strong><small>Your name won't be shown.</small></span>
+            <label class="toggle"><input id="writeAnonymous" type="checkbox" checked><span class="slider"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <span><strong>Visible to everyone</strong><small>Turn off to keep it private.</small></span>
+            <label class="toggle"><input id="writePublic" type="checkbox" checked><span class="slider"></span></label>
+          </div>
+
+          <div class="toggle-row">
+            <span><strong>Allow thoughts</strong><small>Readers can leave a thought.</small></span>
+            <label class="toggle"><input id="writeThoughts" type="checkbox" checked><span class="slider"></span></label>
+          </div>
         </aside>
       </div>
     </section>
   </div>`;
 }
 
+function getWriterData() {
+  const cover = window.__khayaalCover || "";
+  return {
+    id: Date.now(),
+    title: document.getElementById("writeTitle").value.trim() || "Untitled Khayaal",
+    text: document.getElementById("writeText").value.trim(),
+    category: selectedValue("writeCategory"),
+    mood: selectedValue("writeMood"),
+    tone: selectedValue("writeTone"),
+    language: selectedValue("writeLanguage"),
+    anonymous: document.getElementById("writeAnonymous").checked,
+    public: document.getElementById("writePublic").checked,
+    thoughtsEnabled: document.getElementById("writeThoughts").checked,
+    author: document.getElementById("writeAnonymous").checked ? "Anonymous" : "Abhi",
+    excerpt: document.getElementById("writeText").value.trim().slice(0, 180),
+    image: cover || "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80",
+    thoughts: 0
+  };
+}
+
+function publishWriting() {
+  const writing = getWriterData();
+  if (!writing.text) { showToast("Write something first."); return; }
+
+  if (!writing.public) {
+    const privateItems = JSON.parse(localStorage.getItem("khayaal_private_writings") || "[]");
+    privateItems.unshift(writing);
+    localStorage.setItem("khayaal_private_writings", JSON.stringify(privateItems));
+    localStorage.removeItem(DRAFT_KEY);
+    showToast("Your private Khayaal was saved.");
+    setTimeout(() => location.hash = "dashboard", 500);
+    return;
+  }
+
+  const items = userWritings();
+  items.unshift(writing);
+  saveUserWritings(items);
+  localStorage.removeItem(DRAFT_KEY);
+  showToast("Published. Your Khayaal is now in Explore.");
+  setTimeout(() => location.hash = "explore", 700);
+}
+
+function saveDraft() {
+  const writing = getWriterData();
+  if (!writing.text && !writing.title) { showToast("Add a few words before saving."); return; }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(writing));
+  showToast("Draft saved on this device.");
+}
+
+function clearWriter() {
+  localStorage.removeItem(DRAFT_KEY);
+  window.__khayaalCover = "";
+  location.hash = "write";
+  showToast("Writer cleared.");
+}
+
+document.addEventListener("change", e => {
+  if (e.target && e.target.id === "writeCover") {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      showToast("Please choose an image under 3 MB.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      window.__khayaalCover = ev.target.result;
+      const preview = document.getElementById("coverPreview");
+      if (preview) {
+        preview.style.backgroundImage = `url('${ev.target.result}')`;
+        preview.classList.add("has-image");
+        preview.innerHTML = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
 function readPage(id) {
-  const w = writings.find(x=>x.id===Number(id)) || writings[0];
+  const w = allWritings().find(x=>x.id===Number(id)) || writings[0];
   return `<div class="page reading">
     <div class="container">
       <a class="text-link" href="#explore">← Back to Explore</a>
@@ -147,7 +339,7 @@ function community() {
     <section class="container" style="padding-bottom:100px">
       <div class="community-grid">
         <div class="panel"><div class="eyebrow">New on Khayaal</div>
-          ${writings.slice(0,4).map(w=>`<div class="feed-item"><div class="meta">${w.category} · ${w.mood}</div><h3><a href="#read/${w.id}">${w.title}</a></h3><p>${w.excerpt}</p><span class="author">— ${w.author}</span></div>`).join("")}
+          ${allWritings().slice(0,4).map(w=>`<div class="feed-item"><div class="meta">${w.category} · ${w.mood}</div><h3><a href="#read/${w.id}">${esc(w.title)}</a></h3><p>${w.excerpt}</p><span class="author">— ${w.author}</span></div>`).join("")}
         </div>
         <aside class="panel"><div class="eyebrow">Writers worth discovering</div>
           ${["Aarav","Meher","Noor","Ishaan"].map((n,i)=>`<div class="person-card"><div class="avatar-sm">${n[0]}</div><div class="grow"><strong>${n}</strong><small>Poetry · Life · Love</small></div><button class="chip" onclick="showToast('Following ${n} in this prototype.')">Follow</button></div>`).join("")}
@@ -168,7 +360,7 @@ function profile() {
       <div class="section-head"><div><div class="eyebrow">About the writer</div><h2>Words first.</h2></div><button class="button button-dark" onclick="showToast('Profile editing will connect to the backend.')">Edit profile</button></div>
       <p style="max-width:650px;font-size:18px">I write about the things we feel but rarely know how to say. Hindi · Punjabi · English.</p>
       <div class="section-head" style="margin-top:70px"><div><div class="eyebrow">Their writings</div><h2>From the notebook.</h2></div></div>
-      <div class="writing-grid">${writings.slice(0,3).map(card).join("")}</div>
+      <div class="writing-grid">${allWritings().slice(0,3).map(card).join("")}</div>
     </section>
   </div>`;
 }
@@ -180,7 +372,7 @@ function dashboard() {
       <div class="dashboard-grid"><div class="stat"><strong>18</strong><span>Writings</span></div><div class="stat"><strong>6</strong><span>Drafts</span></div><div class="stat"><strong>142</strong><span>Thoughts</span></div><div class="stat"><strong>37</strong><span>Followers</span></div></div>
       <div class="table-card">
         <div class="table-row table-head"><div>Writing</div><div>Status</div><div>Actions</div></div>
-        ${writings.slice(0,4).map(w=>`<div class="table-row"><div><strong>${w.title}</strong><br><small>${w.category} · ${w.mood}</small></div><div>Published</div><div><a class="text-link" href="#read/${w.id}">View</a></div></div>`).join("")}
+        ${allWritings().slice(0,4).map(w=>`<div class="table-row"><div><strong>${w.title}</strong><br><small>${w.category} · ${w.mood}</small></div><div>Published</div><div><a class="text-link" href="#read/${w.id}">View</a></div></div>`).join("")}
       </div>
       <div class="panel" style="margin-top:24px"><h3>Your private thoughts</h3><p>Some words are written only to be understood by ourselves.</p><a class="text-link" href="#write">Open private writings →</a></div>
     </section>

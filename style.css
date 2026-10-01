@@ -227,6 +227,21 @@ p { color: var(--muted); }
 }
 .toast.show { opacity:1; transform:translate(-50%,0); }
 
+
+.muted-label { color:var(--muted); font-weight:400; font-size:11px; }
+.file-input { width:100%; padding:12px; border:1px dashed var(--line); border-radius:10px; background:var(--paper); font:inherit; }
+.cover-preview {
+  height:180px; margin-top:10px; border-radius:14px; border:1px solid var(--line);
+  display:grid; place-items:center; background:var(--paper-2) center/cover no-repeat;
+  color:var(--muted); overflow:hidden;
+}
+.cover-preview.has-image span { display:none; }
+.toggle-row span { display:flex; flex-direction:column; gap:3px; }
+.toggle-row small { color:var(--muted); font-size:11px; }
+.write-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.button-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); }
+.editor-note { font-size:12px; color:var(--muted); margin-top:16px; }
+
 @media (max-width: 900px) {
   .desktop-nav { display:none; }
   .menu-button { display:block; }
